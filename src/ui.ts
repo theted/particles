@@ -35,7 +35,7 @@ export class Ui {
   private refreshing = false;
 
   constructor(params: Params, maxParticles: number, timestamps: boolean, actions: UiActions) {
-    const container = document.getElementById('panel') as HTMLElement;
+    const container = document.getElementById('panel-scroll') as HTMLElement;
     const pane = new Pane({ title: 'Particles', container });
     this.pane = pane;
     // Change handlers go on each input binding: pane-level 'change' also fires for monitor

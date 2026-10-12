@@ -101,6 +101,8 @@ export class Input {
       if (e.key === 'Shift') this.shift = true;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+      // A focused button handles its own Space and Enter.
+      if (t?.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       const handled = (() => {

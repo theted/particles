@@ -3,27 +3,100 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Millions of particles steered through 3D space with the mouse, simulated on the GPU with WebGPU." />
     <title>Particles</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..700&display=swap"
+    />
   </head>
-  <body>
-    <canvas id="view"></canvas>
-    <div id="panel"></div>
-    <div id="hud"></div>
-    <div id="help">
-      <table>
-        <tr><td>Left drag</td><td>force tool at the 3D cursor (Shift inverts)</td></tr>
-        <tr><td>Right drag</td><td>orbit</td></tr>
-        <tr><td>Middle / Shift+right</td><td>pan</td></tr>
-        <tr><td>Wheel</td><td>zoom</td></tr>
-        <tr><td>Alt+wheel, [ ]</td><td>push the cursor deeper / closer</td></tr>
-        <tr><td>Ctrl+click</td><td>pin an attractor (Backspace undo, X clear)</td></tr>
-        <tr><td>Q W E</td><td>attract / repel / swirl</td></tr>
-        <tr><td>Space . R M</td><td>pause / step / reseed / morph</td></tr>
-        <tr><td>F C</td><td>follow swarm / reset view</td></tr>
-        <tr><td>1–9</td><td>presets</td></tr>
-        <tr><td>H ?</td><td>hide all UI / this help</td></tr>
-      </table>
-    </div>
+  <body class="booting">
+    <canvas id="view" aria-label="Particle simulation. Left-drag to apply the force tool, right-drag to orbit."></canvas>
+
+    <header id="hud" class="glass chrome">
+      <span class="readout"><b id="hud-fps">0</b> fps</span>
+      <span class="readout"><b id="hud-count">0</b> particles</span>
+      <span class="readout" id="hud-gpu" hidden>
+        <b id="hud-sim">0.0</b> ms sim <b id="hud-draw">0.0</b> ms draw
+      </span>
+      <span class="badge" id="hud-paused" hidden>Paused</span>
+      <span class="badge" id="hud-follow" hidden>Following</span>
+    </header>
+
+    <aside id="panel" class="glass chrome"><div id="panel-scroll"></div></aside>
+
+    <nav id="dock" class="glass chrome" aria-label="Tools">
+      <div class="tools" role="radiogroup" aria-label="Force tool">
+        <button type="button" role="radio" data-tool="0" data-tip="Pull particles toward the cursor">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="2.2" class="fill" />
+            <path d="M12 3v5M10 6l2 2 2-2M12 21v-5M10 18l2-2 2 2M3 12h5M6 10l2 2-2 2M21 12h-5M18 10l-2 2 2 2" />
+          </svg>
+          <span class="label">Attract</span> <kbd>Q</kbd>
+        </button>
+        <button type="button" role="radio" data-tool="1" data-tip="Push particles away from the cursor">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="2.2" class="fill" />
+            <path d="M12 8V3M10 5l2-2 2 2M12 16v5M10 19l2 2 2-2M8 12H3M5 10l-2 2 2 2M16 12h5M19 10l2 2-2 2" />
+          </svg>
+          <span class="label">Repel</span> <kbd>W</kbd>
+        </button>
+        <button type="button" role="radio" data-tool="2" data-tip="Spin particles around the cursor">
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="swirl">
+            <path d="M12 12a1.6 1.6 0 0 1 1.6 1.6 3.2 3.2 0 0 1-3.2 3.2 4.8 4.8 0 0 1-4.8-4.8A6.4 6.4 0 0 1 12 5.6a8 8 0 0 1 8 8" />
+          </svg>
+          <span class="label">Swirl</span> <kbd>E</kbd>
+        </button>
+      </div>
+      <span class="divider" aria-hidden="true"></span>
+      <button type="button" class="icon" id="btn-pause" data-tip="Pause (Space)" aria-label="Pause">
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="when-running"><path d="M9 6v12M15 6v12" /></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="when-paused"><path d="M8.5 6.2v11.6L18 12z" class="fill" /></svg>
+      </button>
+      <button type="button" class="icon" id="btn-reseed" data-tip="Reseed (R)" aria-label="Reseed">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 9M4.5 4.5V9H9" /></svg>
+      </button>
+      <button type="button" class="icon" id="btn-follow" data-tip="Follow the swarm (F)" aria-label="Follow the swarm" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="6.5" /><circle cx="12" cy="12" r="1.6" class="fill" />
+          <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" />
+        </svg>
+      </button>
+      <button type="button" class="icon pins" id="btn-pins" data-tip="Ctrl+click to pin, X clears" aria-label="Clear pinned attractors">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 21s-6-5.4-6-10.5a6 6 0 0 1 12 0C18 15.6 12 21 12 21z" /><circle cx="12" cy="10.5" r="2" />
+        </svg>
+        <span id="pin-count">0</span>
+      </button>
+      <span class="divider" aria-hidden="true"></span>
+      <button type="button" class="icon" id="btn-help" data-tip="Controls (?)" aria-label="Show controls" aria-pressed="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" /><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5" /><circle cx="12" cy="16.8" r=".9" class="fill" />
+        </svg>
+      </button>
+      <button type="button" class="icon" id="btn-hide" data-tip="Hide the interface (H)" aria-label="Hide the interface">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c5 0 8.6 4 9.5 6a12 12 0 0 1-2.7 3.5M6.6 6.6C4.6 7.9 3.2 9.9 2.5 12c.9 2 4.5 6 9.5 6 1.6 0 3-.4 4.3-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+        </svg>
+      </button>
+    </nav>
+
+    <section id="help" class="glass chrome" aria-label="Controls">
+      <h2>Controls</h2>
+      <dl>
+        <dt>Left drag</dt><dd>Apply the force tool at the 3D cursor. Hold <kbd>Shift</kbd> to invert it.</dd>
+        <dt>Right drag</dt><dd>Orbit the camera</dd>
+        <dt>Middle drag</dt><dd>Pan (or <kbd>Shift</kbd> + right drag)</dd>
+        <dt>Wheel</dt><dd>Zoom. With <kbd>Alt</kbd>, or <kbd>[</kbd> <kbd>]</kbd>, move the cursor deeper.</dd>
+        <dt>Ctrl+click</dt><dd>Pin an attractor. <kbd>Backspace</kbd> removes the last, <kbd>X</kbd> clears all.</dd>
+        <dt>Keys</dt><dd><kbd>Space</kbd> pause, <kbd>.</kbd> step, <kbd>R</kbd> reseed, <kbd>M</kbd> morph, <kbd>F</kbd> follow, <kbd>C</kbd> reset view</dd>
+        <dt>Presets</dt><dd><kbd>1</kbd> to <kbd>9</kbd></dd>
+      </dl>
+    </section>
+
+    <div id="toast" role="status" aria-live="polite"></div>
     <pre id="error" hidden></pre>
     <script type="module" src="/src/main.ts"></script>
   </body>

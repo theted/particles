@@ -1,6 +1,7 @@
 import './style.css';
 import { vec3 } from 'wgpu-matrix';
 import { OrbitCamera } from './camera';
+import { Chrome } from './chrome';
 import { initGpu, showError } from './gpu/device';
 import { GpuTimer } from './gpu/timer';
 import { Input, type Actions } from './input';
@@ -19,10 +20,11 @@ import { Renderer, type Marker } from './render/draw';
 import { ParticleSystem } from './sim/particles';
 import { countLabel, stats, Ui } from './ui';
 
+// sRGB copies of --tool-attract, --tool-repel and --tool-swirl in style.css.
 const TOOL_COLORS: [number, number, number][] = [
-  [0.45, 0.8, 1.0],
-  [1.0, 0.45, 0.35],
-  [0.8, 0.55, 1.0],
+  [0.572, 0.79, 1.0],
+  [0.965, 0.426, 0.402],
+  [0.724, 0.585, 0.963],
 ];
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
@@ -66,6 +68,7 @@ async function main() {
     if (params.sim.count !== particles.count) {
       particles.allocate(params.sim.count);
       particles.seed(params.shape, false);
+      chrome.toast(`${countLabel(params.sim.count)} particles`);
     } else if (shapeKey() !== seededShape) {
       particles.seed(params.shape, params.shape.morph);
     }
@@ -89,7 +92,7 @@ async function main() {
     seededShape = shapeKey();
   }
 
-  function loadPatch(patch: unknown, presetIndex: number) {
+  function loadPatch(patch: unknown, presetIndex: number, message: string) {
     applyPreset(params, patch as never);
     sync();
     reseed();
@@ -97,9 +100,8 @@ async function main() {
     pinAngle = 0;
     ui.setPreset(presetIndex);
     changed();
+    chrome.toast(message);
   }
-
-  const toggle = (id: string) => document.getElementById(id)?.classList.toggle('hidden');
 
   const actions: Actions = {
     togglePause() {
@@ -112,11 +114,14 @@ async function main() {
       stepOnce = true;
     },
     reseed,
-    morph: () => particles.seed(params.shape, true),
-    toggleUi() {
-      for (const id of ['panel', 'hud', 'help']) toggle(id);
+    morph() {
+      particles.seed(params.shape, true);
+      if (params.forces.homeSpring === 0) chrome.toast('Morph moves the home shape. Raise the home spring to see particles travel.', 3200);
     },
-    toggleHelp: () => toggle('help'),
+    toggleUi() {
+      if (!chrome.toggleUi()) chrome.toast('Press H to show the interface', 2400);
+    },
+    toggleHelp: () => chrome.setHelp(!chrome.helpVisible),
     toggleFollow() {
       params.camera.follow = !params.camera.follow;
       ui.refresh();
@@ -124,7 +129,7 @@ async function main() {
     },
     resetCamera: () => camera.reset(),
     preset(index) {
-      if (index < PRESETS.length) loadPatch(PRESETS[index].patch, index);
+      if (index < PRESETS.length) loadPatch(PRESETS[index].patch, index, `${PRESETS[index].name}`);
     },
     setTool(tool) {
       params.cursor.tool = tool;
@@ -137,26 +142,35 @@ async function main() {
       changed();
     },
     pin(invert) {
-      if (params.pins.list.length >= MAX_PINS) return;
+      if (params.pins.list.length >= MAX_PINS) {
+        chrome.toast(`All ${MAX_PINS} pins are in use. Backspace removes the last one.`, 2600);
+        return;
+      }
       const t = params.cursor.tool;
       const tool = invert && t < 2 ? 1 - t : t;
       const base = rotateY({ x: cursor[0], y: cursor[1], z: cursor[2] }, -pinAngle);
       params.pins.list.push({ ...base, tool });
       changed();
       ui.refresh();
+      chrome.toast(`Pinned ${TOOL_NAMES[tool].toLowerCase()} attractor ${params.pins.list.length} of ${MAX_PINS}`);
     },
     removePin() {
+      if (!params.pins.list.length) return;
       params.pins.list.pop();
       changed();
       ui.refresh();
+      chrome.toast('Removed the last pin');
     },
     clearPins() {
+      const n = params.pins.list.length;
       params.pins.list = [];
       changed();
       ui.refresh();
+      chrome.toast(n ? `Cleared ${n} pin${n === 1 ? '' : 's'}` : 'No pins yet. Ctrl+click to pin an attractor.');
     },
   };
 
+  const chrome = new Chrome(actions, gpu.timestamps);
   const ui = new Ui(params, gpu.maxParticles, gpu.timestamps, {
     reseed,
     morph: actions.morph,
@@ -166,7 +180,10 @@ async function main() {
     changed,
     copyLink() {
       writeHash();
-      navigator.clipboard?.writeText(location.href);
+      navigator.clipboard?.writeText(location.href).then(
+        () => chrome.toast('Link copied'),
+        () => chrome.toast('Could not copy. The address bar has the link.'),
+      );
     },
     saveJson() {
       const blob = new Blob([JSON.stringify(params, null, 2)], { type: 'application/json' });
@@ -184,7 +201,7 @@ async function main() {
         const file = input.files?.[0];
         if (!file) return;
         try {
-          loadPatch(JSON.parse(await file.text()), 0);
+          loadPatch(JSON.parse(await file.text()), 0, `Loaded ${file.name}`);
         } catch (e) {
           showError(`Could not load ${file.name}: ${e instanceof Error ? e.message : e}`);
         }
@@ -196,8 +213,8 @@ async function main() {
   ui.refresh();
 
   const input = new Input(canvas, camera, actions);
-  // The help overlay is for the first look; '?' brings it back.
-  canvas.addEventListener('pointerdown', () => document.getElementById('help')?.classList.add('hidden'), { once: true });
+  // The controls card is for the first look; '?' brings it back.
+  canvas.addEventListener('pointerdown', () => chrome.setHelp(false), { once: true });
 
   function resize() {
     const dpr = window.devicePixelRatio * params.render.resolution;
@@ -268,9 +285,9 @@ async function main() {
     timer?.collect(running);
   }
 
-  const hud = document.getElementById('hud') as HTMLElement;
   let hudAge = 0;
   function updateStats(dt: number) {
+    chrome.sync(params, input.shift);
     stats.frameMs = stats.frameMs * 0.9 + dt * 1000 * 0.1;
     stats.fps = 1000 / Math.max(stats.frameMs, 1e-3);
     if (timer) {
@@ -280,16 +297,7 @@ async function main() {
     hudAge += dt;
     if (hudAge < 0.25) return;
     hudAge = 0;
-    const tool = TOOL_NAMES[params.cursor.tool] + (input.shift ? ' (inverted)' : '');
-    const parts = [
-      `${stats.fps.toFixed(0)} fps`,
-      `${countLabel(particles.count)} particles`,
-      `tool: ${tool}`,
-    ];
-    if (timer) parts.push(`gpu: sim ${stats.simMs.toFixed(1)} ms, draw ${stats.renderMs.toFixed(1)} ms`);
-    if (params.sim.paused) parts.push('PAUSED');
-    if (params.camera.follow) parts.push('following');
-    hud.textContent = parts.join('  ·  ');
+    chrome.stats(stats.fps, particles.count, stats.simMs, stats.renderMs);
   }
 
   let last = performance.now();
@@ -301,6 +309,7 @@ async function main() {
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
+  chrome.ready();
 
   if (import.meta.env.DEV) {
     // Lets scripts drive frames where requestAnimationFrame never fires (hidden automation tabs).
