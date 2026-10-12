@@ -1,0 +1,17 @@
+name: Deploy
+
+# Publishes to particles.sundbergsolutions.se (S3 + CloudFront). The shared workflow handles the
+# build, the cache headers and the three-pass upload; see static-s3.md in theted/infrastructure.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    uses: theted/workflows/.github/workflows/deploy-static.yml@master
+    with:
+      node-version: '22'
+      build-command: npm run build
+      dist-dir: dist
+    secrets: inherit
