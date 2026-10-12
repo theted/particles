@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Particles</title>
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <div id="panel"></div>
+    <div id="hud"></div>
+    <div id="help">
+      <table>
+        <tr><td>Left drag</td><td>force tool at the 3D cursor (Shift inverts)</td></tr>
+        <tr><td>Right drag</td><td>orbit</td></tr>
+        <tr><td>Middle / Shift+right</td><td>pan</td></tr>
+        <tr><td>Wheel</td><td>zoom</td></tr>
+        <tr><td>Alt+wheel, [ ]</td><td>push the cursor deeper / closer</td></tr>
+        <tr><td>Ctrl+click</td><td>pin an attractor (Backspace undo, X clear)</td></tr>
+        <tr><td>Q W E</td><td>attract / repel / swirl</td></tr>
+        <tr><td>Space . R M</td><td>pause / step / reseed / morph</td></tr>
+        <tr><td>F C</td><td>follow swarm / reset view</td></tr>
+        <tr><td>1–9</td><td>presets</td></tr>
+        <tr><td>H ?</td><td>hide all UI / this help</td></tr>
+      </table>
+    </div>
+    <pre id="error" hidden></pre>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "particles",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Millions of particles in WebGPU, steered through 3D space with the mouse",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "tweakpane": "^4.0.5",
+    "wgpu-matrix": "^3.4.2"
+  },
+  "devDependencies": {
+    "@tweakpane/core": "^2.0.5",
+    "@webgpu/types": "^0.1.74",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4"
+  }
+}
