@@ -33,7 +33,7 @@ whirlpool, nebula, black hole.</sub>
 You need [Node.js](https://nodejs.org/) 20.19+ or 22.12+ and a browser with WebGPU.
 
 ```sh
-git clone git@github.com:SundbergMedia/particles.git
+git clone git@github.com:theted/particles.git
 cd particles
 npm install
 npm run dev
