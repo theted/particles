@@ -1,0 +1,97 @@
+/* ── Panel (Tweakpane, themed through its own variables) ───────────────────── */
+#panel {
+  position: fixed;
+  top: var(--gap);
+  right: var(--gap);
+  display: flex;
+  width: var(--panel-width);
+  max-height: calc(100vh - 3 * var(--gap) - var(--dock-height));
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+
+  --tp-base-background-color: transparent;
+  --tp-base-shadow-color: transparent;
+  --tp-base-border-radius: var(--radius-md);
+  --tp-base-font-family: var(--font-body);
+  --tp-blade-border-radius: 6px;
+  --tp-blade-horizontal-padding: 6px;
+  --tp-blade-value-width: 156px;
+  --tp-container-unit-size: 22px;
+  --tp-container-unit-spacing: 5px;
+  --tp-container-vertical-padding: 5px;
+  --tp-button-background-color: oklch(0.38 0.05 258 / 0.7);
+  --tp-button-background-color-hover: oklch(0.46 0.06 256 / 0.75);
+  --tp-button-background-color-focus: oklch(0.46 0.06 256 / 0.75);
+  --tp-button-background-color-active: oklch(0.52 0.07 254 / 0.8);
+  --tp-button-foreground-color: var(--text);
+  --tp-container-background-color: oklch(0.32 0.04 258 / 0.3);
+  --tp-container-background-color-hover: oklch(0.38 0.05 258 / 0.38);
+  --tp-container-background-color-focus: oklch(0.38 0.05 258 / 0.38);
+  --tp-container-background-color-active: oklch(0.44 0.05 258 / 0.42);
+  --tp-container-foreground-color: var(--text);
+  --tp-groove-foreground-color: oklch(0.62 0.05 255 / 0.22);
+  --tp-input-background-color: var(--field);
+  --tp-input-background-color-hover: oklch(0.2 0.03 262 / 0.62);
+  --tp-input-background-color-focus: oklch(0.22 0.035 262 / 0.7);
+  --tp-input-background-color-active: oklch(0.24 0.04 262 / 0.72);
+  --tp-input-foreground-color: var(--text);
+  --tp-label-foreground-color: var(--text-subtle);
+  --tp-monitor-background-color: oklch(0.13 0.022 262 / 0.5);
+  --tp-monitor-foreground-color: var(--text-muted);
+}
+
+#panel-scroll {
+  flex: 1;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.62 0.05 255 / 0.35) transparent;
+}
+
+#panel .tp-rotv {
+  font-size: 12px;
+  font-weight: 450;
+}
+
+#panel .tp-rotv_b,
+#panel .tp-fldv_b {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Fields get a faint cool rim so they read against the glass. */
+#panel .tp-ckbv_w,
+#panel .tp-txtv_i,
+#panel .tp-lstv_s {
+  box-shadow: inset 0 0 0 1px oklch(0.62 0.05 255 / 0.22);
+}
+
+/* Checked boxes and slider grips catch the light. */
+#panel .tp-ckbv_w svg path {
+  stroke: var(--light);
+}
+
+#panel .tp-sldv_k::before {
+  background-color: oklch(0.86 0.12 78 / 0.65);
+}
+
+#panel .tp-sldv_k::after {
+  border-radius: 50%;
+  background-color: var(--light);
+  box-shadow: 0 0 10px -2px var(--light);
+}
+
+#panel :focus-visible {
+  outline: 2px solid var(--light-rim);
+  outline-offset: 1px;
+}
+
+@media (max-width: 640px) {
+  #panel {
+    top: calc(2 * var(--gap) + 34px);
+    left: var(--gap);
+    width: auto;
+    max-height: calc(100vh - 5 * var(--gap) - 34px - var(--dock-height));
+  }
+}

@@ -1,0 +1,117 @@
+/* ── Dock ──────────────────────────────────────────────────────────────────── */
+#dock {
+  position: fixed;
+  left: 50%;
+  bottom: var(--gap);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: var(--dock-height);
+  box-sizing: border-box;
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  transform: translateX(-50%);
+}
+
+.tools {
+  display: flex;
+  gap: 3px;
+}
+
+.tools [data-tool='0'] svg { color: var(--tool-attract); }
+.tools [data-tool='1'] svg { color: var(--tool-repel); }
+.tools [data-tool='2'] svg { color: var(--tool-swirl); }
+
+/* The active tool is the one lit by the warm light. With Shift held the lit button
+   is the inverted tool, and the swirl glyph turns the other way. */
+.tools [aria-checked='true'] {
+  background: linear-gradient(to bottom, oklch(0.86 0.12 78 / 0.2), oklch(0.86 0.12 78 / 0.07));
+  box-shadow:
+    inset 0 0 0 1px var(--light-rim),
+    0 0 24px -8px oklch(0.86 0.12 78 / 0.7);
+  color: var(--text);
+}
+
+.tools [aria-checked='true'] kbd {
+  color: var(--light-bright);
+}
+
+#dock svg.reversed {
+  transform: scaleX(-1);
+}
+
+#dock .icon {
+  justify-content: center;
+  width: 40px;
+  padding: 0;
+}
+
+#dock .pins {
+  width: auto;
+  gap: 5px;
+  padding: 0 11px 0 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+#dock #btn-help[aria-pressed='true'] {
+  color: var(--text);
+}
+
+/* Two-state buttons carry both glyphs and show the one that fits. */
+#btn-pause .when-paused,
+body.paused #btn-pause .when-running,
+#btn-fullscreen .when-fullscreen,
+body.fullscreen #btn-fullscreen .when-windowed {
+  display: none;
+}
+
+body.paused #btn-pause .when-paused,
+body.fullscreen #btn-fullscreen .when-fullscreen {
+  display: block;
+}
+
+#dock #btn-fullscreen[aria-pressed='true'] {
+  color: var(--text-muted);
+}
+
+#dock [hidden] {
+  display: none;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 5px;
+  background: var(--border);
+}
+
+@media (max-width: 900px) {
+  .tools .label,
+  .tools kbd {
+    display: none;
+  }
+
+  #dock button {
+    padding: 0 10px;
+  }
+}
+
+/* Phones: no controls card to toggle, and full screen is rarely offered, so their
+   buttons make room for hiding the interface. */
+@media (max-width: 640px) {
+  #dock .divider,
+  #dock #btn-help,
+  #dock #btn-fullscreen {
+    display: none;
+  }
+
+  #dock button,
+  #dock .icon {
+    width: 36px;
+    padding: 0 8px;
+  }
+
+  #dock .pins {
+    width: auto;
+  }
+}

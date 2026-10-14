@@ -1,0 +1,129 @@
+/* ── Camera navigator ──────────────────────────────────────────────────────────
+   Beside the panel, where a 3D viewport keeps its view controls: a compass of the world
+   axes that turns with the camera, and a column of camera buttons under it. */
+#nav {
+  position: fixed;
+  top: var(--gap);
+  right: calc(var(--panel-width) + 2 * var(--gap));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: var(--compass);
+}
+
+.compass {
+  width: var(--compass);
+  height: var(--compass);
+  border-radius: 50%;
+  background: oklch(0.22 0.035 260 / 0.32);
+  transition: background-color var(--dur-2) var(--ease-glass);
+}
+
+.compass:hover {
+  background: var(--glass);
+}
+
+#nav-compass {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+#nav-compass:active {
+  cursor: grabbing;
+}
+
+#nav-compass .axis {
+  cursor: pointer;
+}
+
+.axis-x { color: var(--axis-x); }
+.axis-y { color: var(--axis-y); }
+.axis-z { color: var(--axis-z); }
+
+#nav-compass .stem {
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+#nav-compass circle {
+  fill: currentColor;
+  stroke: transparent;
+  stroke-width: 2;
+  transition: stroke var(--dur-1) var(--ease-glass);
+}
+
+#nav-compass .neg circle {
+  fill-opacity: 0.22;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+#nav-compass text {
+  fill: oklch(0.18 0.03 262);
+  font: 700 11px var(--font-body);
+  pointer-events: none;
+}
+
+#nav-compass .axis:hover circle {
+  stroke: var(--text);
+}
+
+.nav-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--radius-lg);
+}
+
+#nav button {
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  touch-action: none;
+}
+
+#nav button svg {
+  width: 18px;
+  height: 18px;
+}
+
+#nav-pan {
+  cursor: grab;
+}
+
+#nav-pan:active {
+  cursor: grabbing;
+}
+
+/* Tooltips open to the left: above would leave the screen. */
+#nav [data-tip]::after {
+  top: 50%;
+  right: calc(100% + 10px);
+  bottom: auto;
+  left: auto;
+  transform: translate(4px, -50%);
+}
+
+#nav [data-tip]:hover::after {
+  transform: translate(0, -50%);
+}
+
+/* Phones: bottom right, above the dock and in reach of a thumb. The panel, when open,
+   covers it. */
+@media (max-width: 640px) {
+  #nav {
+    --compass: 72px;
+    top: auto;
+    right: var(--gap);
+    bottom: calc(2 * var(--gap) + var(--dock-height));
+  }
+}

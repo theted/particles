@@ -16,6 +16,10 @@ GPU does the rest.
 - **Pin** up to 16 attractors in space. They can orbit, and each pin keeps the tool it was placed with.
 - **Shape** the swarm with gravity, drag, divergence-free turbulence, and a spring that pulls every
   particle back to its starting shape. Change the shape and the particles morph across.
+- **Look around** with the mouse, the keyboard or touch: orbit, pan and zoom, click the compass to look
+  along an axis, follow the swarm, or let the view auto-rotate.
+- **Hide everything** with `H` (rings and messages included) for a clean view, and go full screen with
+  `Shift` + `F`.
 - **Choose a look**: 1-pixel points, soft sprites or motion streaks, added together in HDR with
   trails, bloom and a filmic tonemap. Colour particles by speed, direction, depth, distance to the
   cursor, or a palette.
@@ -72,20 +76,28 @@ about its compositor, and WebGPU works regardless.
 
 | Input | Action |
 |---|---|
-| Left drag | Apply the force tool at the 3D cursor. Hold Shift to invert it. |
-| Right drag | Orbit the camera |
-| Middle drag, or Shift + right drag | Pan |
-| Wheel | Zoom |
+| Left drag, or one finger | Apply the force tool at the 3D cursor. Hold Shift to invert it. |
 | Alt + wheel, or `[` `]` | Move the 3D cursor deeper or closer |
 | Ctrl + click | Pin an attractor where the cursor is |
 | `Q` `W` `E` | Attract, repel, swirl |
+| `Backspace` / `X` | Remove the last pin / clear all pins |
+| **Camera** | |
+| Right drag, two fingers, or arrow keys | Orbit |
+| Middle drag, Shift + right drag, three fingers, or Shift + arrow keys | Pan |
+| Wheel, pinch, or `+` `−` | Zoom |
+| `C` / `F` / `A` | Reset the view / follow the swarm / auto-rotate |
+| **Simulation and screen** | |
 | `Space` | Pause or resume |
 | `.` | Step one frame (pauses first) |
 | `R` / `M` | Reseed / morph to the selected shape |
-| `F` / `C` | Follow the swarm / reset the view |
-| `Backspace` / `X` | Remove the last pin / clear all pins |
 | `1` to `9` | Presets |
-| `H` / `?` | Hide the whole interface / the controls card |
+| `H` | Hide everything, cursor rings and messages included. `H` again or `Esc` brings it back. |
+| `Shift` + `F` | Full screen |
+| `?` | The controls card |
+
+Arrow keys and `+` `−` act for as long as they are held, and move the camera rather than the scene: the
+right arrow walks the camera round to the right. While you steer, a small white dot marks the point the
+camera turns and zooms around.
 
 **Where is the 3D cursor?** It sits on a plane that faces the camera and passes through the point
 the camera orbits around. The ring under the mouse marks it. Push it deeper or pull it closer with
@@ -93,6 +105,15 @@ Alt + wheel, or set it exactly with "depth" in the panel.
 
 The tool dock at the bottom has the same actions as the keys, plus a pin counter: Ctrl+click adds a
 pin, and clicking the counter clears them.
+
+**Camera controls** sit beside the panel. The compass shows the world axes as the camera sees them
+(x red, y green, z blue; the hollow ones point away). Drag it to orbit, or click an axis to look along
+it; clicking the axis you already look along turns round to the other side. Under it: zoom in and out
+(hold to keep going), a handle to drag the view across, auto-rotate, and reset.
+
+With the interface hidden the pointer fades after two seconds at rest. Move it to the bottom edge, or tap
+there, for a button that brings the interface back. That is also the way back on a phone, where there is
+no `H` key.
 
 ![The interface: readout, settings panel, controls card and tool dock](docs/images/interface.jpg)
 
@@ -146,10 +167,12 @@ every frame
 | `src/render/particles.wgsl` | Points, sprites and streaks, plus colouring |
 | `src/render/post.wgsl` | Bloom, tonemap, trail fade |
 | `src/render/gizmo.wgsl` | Screen-space rings for the cursor and pins |
-| `src/camera.ts` | Orbit camera and the mouse ray for the 3D cursor |
-| `src/input.ts` | Mouse and keyboard mapping |
+| `src/camera.ts` | Orbit camera, axis views, held-key motion, and the mouse ray for the 3D cursor |
+| `src/input.ts` | Mouse, touch and keyboard mapping |
+| `src/navigator.ts` | The camera compass and buttons |
 | `src/ui.ts` | The settings panel ([Tweakpane](https://tweakpane.github.io/docs/)) |
-| `src/chrome.ts` | Readout, tool dock, controls card, toasts |
+| `src/chrome.ts` | Readout, tool dock, controls card, toasts, hiding the interface |
+| `src/styles/` | One stylesheet per part of the interface, on the glass design tokens |
 | `src/gpu/` | Device set-up, shader error reporting, GPU timestamps |
 
 **Adding a setting:** add it to `makeDefaults()` in `params.ts`, bind it in `ui.ts`, and pack it

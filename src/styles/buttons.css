@@ -1,0 +1,52 @@
+/* ── Icon buttons on glass, shared by the dock and the camera navigator ───── */
+:is(#dock, #nav) button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 10px 0 9px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  font: 500 13px var(--font-body);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--ease-glass),
+    color var(--dur-2) var(--ease-glass),
+    box-shadow var(--dur-2) var(--ease-glass);
+}
+
+:is(#dock, #nav) button:hover {
+  background: var(--glass-hover);
+  color: var(--text);
+}
+
+:is(#dock, #nav) button:focus-visible {
+  outline: 2px solid var(--light);
+  outline-offset: 1px;
+}
+
+:is(#dock, #nav, #reveal) button svg,
+#reveal svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--dur-3) var(--ease-glass);
+}
+
+:is(#dock, #nav) button svg .fill {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* A toggle that is on catches the warm light. */
+:is(#dock, #nav) [aria-pressed='true'] {
+  color: var(--light);
+}

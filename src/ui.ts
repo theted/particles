@@ -36,7 +36,8 @@ export class Ui {
 
   constructor(params: Params, maxParticles: number, timestamps: boolean, actions: UiActions) {
     const container = document.getElementById('panel-scroll') as HTMLElement;
-    const pane = new Pane({ title: 'Particles', container });
+    // On a phone the open panel would cover the canvas: start it folded to its title bar.
+    const pane = new Pane({ title: 'Particles', container, expanded: !matchMedia('(max-width: 640px)').matches });
     this.pane = pane;
     // Change handlers go on each input binding: pane-level 'change' also fires for monitor
     // updates (the fps graph), which would keep the URL-hash debounce from ever settling.
@@ -143,7 +144,7 @@ export class Ui {
 
     const camera = pane.addFolder({ title: 'Camera', expanded: false });
     bind(camera, params.camera, 'fov', { min: 20, max: 110, step: 1 });
-    bind(camera, params.camera, 'autoRotate', { label: 'auto rotate', min: -1, max: 1, step: 0.01 });
+    bind(camera, params.camera, 'autoRotate', { label: 'auto rotate (A)', min: -1, max: 1, step: 0.01 });
     bind(camera, params.camera, 'damping', { min: 0, max: 0.5, step: 0.01 });
     bind(camera, params.camera, 'follow', { label: 'follow swarm (F)' });
     camera.addButton({ title: 'Reset view (C)' }).on('click', actions.resetCamera);

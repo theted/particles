@@ -1,10 +1,11 @@
-import './style.css';
+import './styles/index.css';
 import { vec3 } from 'wgpu-matrix';
 import { OrbitCamera } from './camera';
 import { Chrome } from './chrome';
 import { initGpu, showError } from './gpu/device';
 import { GpuTimer } from './gpu/timer';
 import { Input, type Actions } from './input';
+import { Navigator } from './navigator';
 import {
   applyPreset,
   COUNTS,
@@ -26,6 +27,7 @@ const TOOL_COLORS: [number, number, number][] = [
   [0.965, 0.426, 0.402],
   [0.724, 0.585, 0.963],
 ];
+const PIVOT_COLOR: [number, number, number] = [0.92, 0.95, 1.0];
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
 
@@ -58,6 +60,8 @@ async function main() {
   let pinAngle = 0;
   let stepOnce = false;
   let sized = false;
+  /** The auto-rotate speed that A turns back on. */
+  let spin = params.camera.autoRotate || 0.15;
 
   const shapeKey = () => JSON.stringify({ ...params.shape, morph: null });
   let seededShape = shapeKey();
@@ -118,14 +122,29 @@ async function main() {
       particles.seed(params.shape, true);
       if (params.forces.homeSpring === 0) chrome.toast('Morph moves the home shape. Raise the home spring to see particles travel.', 3200);
     },
-    toggleUi() {
-      if (!chrome.toggleUi()) chrome.toast('Press H to show the interface', 2400);
-    },
+    toggleUi: () => chrome.setUi(!chrome.uiVisible),
     toggleHelp: () => chrome.setHelp(!chrome.helpVisible),
+    dismiss() {
+      if (!chrome.uiVisible) chrome.setUi(true);
+      else if (chrome.helpVisible) chrome.setHelp(false);
+    },
+    toggleFullscreen() {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else if (!document.fullscreenEnabled) chrome.toast('This browser has no full screen for pages');
+      else document.documentElement.requestFullscreen().catch(() => chrome.toast('Full screen was refused'));
+    },
     toggleFollow() {
       params.camera.follow = !params.camera.follow;
       ui.refresh();
       changed();
+    },
+    toggleAutoRotate() {
+      const c = params.camera;
+      if (c.autoRotate) spin = c.autoRotate;
+      c.autoRotate = c.autoRotate ? 0 : spin;
+      ui.refresh();
+      changed();
+      chrome.toast(c.autoRotate ? 'Auto-rotate on' : 'Auto-rotate off');
     },
     resetCamera: () => camera.reset(),
     preset(index) {
@@ -213,6 +232,7 @@ async function main() {
   ui.refresh();
 
   const input = new Input(canvas, camera, actions);
+  const nav = new Navigator(camera, input, actions);
   // The controls card is for the first look; '?' brings it back.
   canvas.addEventListener('pointerdown', () => chrome.setHelp(false), { once: true });
 
@@ -229,6 +249,7 @@ async function main() {
   }
 
   function markers(cursorOn: boolean, pins: Pin[]): Marker[] {
+    if (!chrome.uiVisible) return [];
     const scale = window.devicePixelRatio * params.render.resolution;
     const out: Marker[] = pins.map((p) => ({
       pos: [p.x, p.y, p.z],
@@ -236,6 +257,11 @@ async function main() {
       filled: true,
       color: [...TOOL_COLORS[p.tool], 0.8],
     }));
+    // While the camera is steered, mark the point it turns and zooms around.
+    const pivot = clamp((1.2 - camera.idle) / 0.6, 0, 1);
+    if (pivot > 0) {
+      out.push({ pos: camera.target, radius: 5 * scale, filled: true, color: [...PIVOT_COLOR, 0.75 * pivot] });
+    }
     const tool = input.shift && params.cursor.tool < 2 ? 1 - params.cursor.tool : params.cursor.tool;
     out.push({
       pos: cursor,
@@ -250,8 +276,10 @@ async function main() {
   function frame(dt: number) {
     resize();
     const p = params;
+    camera.drive(input.drive(), dt);
     camera.update(dt, p.camera.damping, p.camera.autoRotate, p.camera.fov, canvas.width / canvas.height);
     if (p.camera.follow && particles.centroid) camera.follow(particles.centroid, dt);
+    nav.update(camera, p);
     camera.cursorPoint(input.ndcX, input.ndcY, p.cursor.depth, cursor);
     const cursorOn = input.forceHeld || (p.cursor.hover && input.hovering);
 
