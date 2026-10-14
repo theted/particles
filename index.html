@@ -13,7 +13,7 @@
     />
   </head>
   <body class="booting">
-    <canvas id="view" aria-label="Particle simulation. Left-drag to apply the force tool, right-drag to orbit."></canvas>
+    <canvas id="view" aria-label="Particle simulation. Left-drag to apply the force tool, right-drag or the arrow keys to orbit."></canvas>
 
     <header id="hud" class="glass chrome">
       <span class="readout"><b id="hud-fps">0</b> fps</span>
@@ -24,6 +24,33 @@
       <span class="badge" id="hud-paused" hidden>Paused</span>
       <span class="badge" id="hud-follow" hidden>Following</span>
     </header>
+
+    <div id="nav" class="chrome" role="group" aria-label="Camera">
+      <div class="compass glass">
+        <svg id="nav-compass" viewBox="-50 -50 100 100" role="img" aria-label="Orientation. Drag to orbit, click an axis to look along it."></svg>
+      </div>
+      <div class="nav-buttons glass">
+        <button type="button" data-hold="in" data-tip="Zoom in (+)" aria-label="Zoom in">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12" /></svg>
+        </button>
+        <button type="button" data-hold="out" data-tip="Zoom out (−)" aria-label="Zoom out">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12" /></svg>
+        </button>
+        <button type="button" id="nav-pan" data-tip="Drag to pan (Shift + arrows)" aria-label="Pan: drag">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7.5 15V7.5a1.5 1.5 0 0 1 3 0v4M10.5 11V5.5a1.5 1.5 0 0 1 3 0V11M13.5 11V7a1.5 1.5 0 0 1 3 0v7.5a6 6 0 0 1-6 6H10a5.5 5.5 0 0 1-4.4-2.2l-1.9-2.6a1.5 1.5 0 0 1 2.4-1.8L7.5 15" />
+          </svg>
+        </button>
+        <button type="button" id="nav-spin" data-tip="Auto-rotate (A)" aria-label="Auto-rotate" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v18" /><path d="M7.5 10.4C4.8 11 3 12 3 13.2c0 2 4 3.8 9 3.8s9-1.7 9-3.8c0-1.2-1.8-2.2-4.5-2.8" /><path d="M14.8 8.6l2.7 1.8-1.7 2.6" />
+          </svg>
+        </button>
+        <button type="button" id="nav-home" data-tip="Reset view (C)" aria-label="Reset view">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5M6.5 9.6V19h11V9.6M10 19v-4.5h4V19" /></svg>
+        </button>
+      </div>
+    </div>
 
     <aside id="panel" class="glass chrome"><div id="panel-scroll"></div></aside>
 
@@ -76,7 +103,11 @@
           <circle cx="12" cy="12" r="9" /><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5" /><circle cx="12" cy="16.8" r=".9" class="fill" />
         </svg>
       </button>
-      <button type="button" class="icon" id="btn-hide" data-tip="Hide the interface (H)" aria-label="Hide the interface">
+      <button type="button" class="icon" id="btn-fullscreen" data-tip="Full screen (Shift+F)" aria-label="Full screen" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="when-windowed"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="when-fullscreen"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
+      </button>
+      <button type="button" class="icon" id="btn-hide" data-tip="Hide everything (H)" aria-label="Hide the interface">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c5 0 8.6 4 9.5 6a12 12 0 0 1-2.7 3.5M6.6 6.6C4.6 7.9 3.2 9.9 2.5 12c.9 2 4.5 6 9.5 6 1.6 0 3-.4 4.3-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2" />
         </svg>
@@ -84,17 +115,43 @@
     </nav>
 
     <section id="help" class="glass chrome" aria-label="Controls">
-      <h2>Controls</h2>
-      <dl>
-        <dt>Left drag</dt><dd>Apply the force tool at the 3D cursor. Hold <kbd>Shift</kbd> to invert it.</dd>
-        <dt>Right drag</dt><dd>Orbit the camera</dd>
-        <dt>Middle drag</dt><dd>Pan (or <kbd>Shift</kbd> + right drag)</dd>
-        <dt>Wheel</dt><dd>Zoom. With <kbd>Alt</kbd>, or <kbd>[</kbd> <kbd>]</kbd>, move the cursor deeper.</dd>
-        <dt>Ctrl+click</dt><dd>Pin an attractor. <kbd>Backspace</kbd> removes the last, <kbd>X</kbd> clears all.</dd>
-        <dt>Keys</dt><dd><kbd>Space</kbd> pause, <kbd>.</kbd> step, <kbd>R</kbd> reseed, <kbd>M</kbd> morph, <kbd>F</kbd> follow, <kbd>C</kbd> reset view</dd>
-        <dt>Presets</dt><dd><kbd>1</kbd> to <kbd>9</kbd></dd>
-      </dl>
+      <div>
+        <h3>Forces</h3>
+        <ul>
+          <li><b>Left drag</b> the force tool at the 3D cursor, <kbd>Shift</kbd> inverts it</li>
+          <li><kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> attract, repel, swirl</li>
+          <li><kbd>[</kbd> <kbd>]</kbd> or <b>Alt + wheel</b> cursor depth</li>
+          <li><b>Ctrl + click</b> pins an attractor, <kbd>Backspace</kbd> <kbd>X</kbd> remove</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Camera</h3>
+        <ul>
+          <li><b>Right drag</b>, arrow keys or two fingers orbit</li>
+          <li><b>Middle drag</b> or <kbd>Shift</kbd> + arrows pan</li>
+          <li><b>Wheel</b>, pinch or <kbd>+</kbd> <kbd>−</kbd> zoom</li>
+          <li><b>Drag the compass</b>, or click an axis to look along it</li>
+          <li><kbd>C</kbd> reset, <kbd>F</kbd> follow, <kbd>A</kbd> auto-rotate</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Keys</h3>
+        <ul>
+          <li><kbd>Space</kbd> pause, <kbd>.</kbd> step</li>
+          <li><kbd>R</kbd> reseed, <kbd>M</kbd> morph</li>
+          <li><kbd>1</kbd> to <kbd>9</kbd> presets</li>
+          <li><kbd>H</kbd> hide everything, <kbd>Esc</kbd> back</li>
+          <li><kbd>Shift</kbd> + <kbd>F</kbd> full screen, <kbd>?</kbd> this card</li>
+        </ul>
+      </div>
     </section>
+
+    <button type="button" id="reveal" class="glass" aria-label="Show the interface">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M2.5 12C3.4 10 7 6 12 6s8.6 4 9.5 6c-.9 2-4.5 6-9.5 6s-8.6-4-9.5-6z" /><circle cx="12" cy="12" r="3" />
+      </svg>
+      Show interface <kbd>H</kbd>
+    </button>
 
     <div id="toast" role="status" aria-live="polite"></div>
     <pre id="error" hidden></pre>

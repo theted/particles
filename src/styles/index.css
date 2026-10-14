@@ -1,0 +1,9 @@
+/* One stylesheet per part of the interface. Vite inlines these imports into one file. */
+@import './tokens.css';
+@import './base.css';
+@import './buttons.css';
+@import './hud.css';
+@import './panel.css';
+@import './dock.css';
+@import './nav.css';
+@import './overlays.css';

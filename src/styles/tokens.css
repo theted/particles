@@ -1,0 +1,56 @@
+/* Tokens from glass-design-system ("cool glass, warm light"): the glass is cobalt smoke,
+   and warm amber is reserved for light, which here means "on": the active tool, running
+   states, focus. Everything else stays cool so the particles keep the colour. */
+:root {
+  color-scheme: dark;
+  --font-body: 'Schibsted Grotesk', 'Avenir Next', 'Segoe UI Variable Text', system-ui, sans-serif;
+
+  --text: oklch(0.97 0.008 250);
+  --text-muted: oklch(0.84 0.022 252);
+  --text-subtle: oklch(0.68 0.035 256);
+
+  --glass: oklch(0.22 0.035 260 / 0.5);
+  --glass-strong: oklch(0.26 0.04 260 / 0.78);
+  --glass-hover: oklch(0.42 0.05 258 / 0.32);
+  --field: oklch(0.15 0.025 262 / 0.55);
+  --border: oklch(0.52 0.05 255 / 0.3);
+  --rim-warm: oklch(0.9 0.12 78 / 0.9);
+  --rim-cool: oklch(0.8 0.1 240 / 0.5);
+
+  --light: oklch(0.86 0.12 78);
+  --light-bright: oklch(0.94 0.07 85);
+  --light-soft: oklch(0.86 0.12 78 / 0.16);
+  --light-rim: oklch(0.86 0.12 78 / 0.45);
+  --danger: oklch(0.7 0.17 25);
+
+  /* The cursor ring uses the same three colours (sRGB copies in main.ts). */
+  --tool-attract: oklch(0.82 0.1 250);
+  --tool-repel: oklch(0.7 0.17 25);
+  --tool-swirl: oklch(0.74 0.14 300);
+
+  /* The compass keeps the usual x red, y green, z blue, softened to sit on the glass. */
+  --axis-x: oklch(0.7 0.16 25);
+  --axis-y: oklch(0.8 0.14 145);
+  --axis-z: oklch(0.72 0.12 250);
+
+  --ease-glass: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-1: 140ms;
+  --dur-2: 280ms;
+  --dur-3: 560ms;
+
+  --radius-lg: 16px;
+  --radius-md: 11px;
+  --radius-sm: 7px;
+  --gap: 12px;
+  --dock-height: 52px;
+  --panel-width: 316px;
+  --compass: 84px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-1: 1ms;
+    --dur-2: 1ms;
+    --dur-3: 1ms;
+  }
+}

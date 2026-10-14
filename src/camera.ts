@@ -1,6 +1,9 @@
 import { mat4, vec3, type Vec3 } from 'wgpu-matrix';
 
 const UP = vec3.fromValues(0, 1, 0);
+const PITCH_LIMIT = 1.54;
+/** Radians of orbit per pixel of drag. */
+const ORBIT_GAIN = 0.005;
 
 interface Pose {
   target: Vec3;
@@ -9,8 +12,21 @@ interface Pose {
   distance: number;
 }
 
+/** Camera motion held down on keys or buttons. Each axis is -1, 0 or 1. */
+export interface Drive {
+  /** Move the camera right (orbit, or slide with `pan`). */
+  x: number;
+  /** Move the camera up. */
+  y: number;
+  /** Move in toward the target. */
+  zoom: number;
+  pan: boolean;
+}
+
 const homePose = (): Pose => ({ target: vec3.create(0, 0, 0), yaw: 0.6, pitch: 0.35, distance: 4.5 });
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
+/** An angle wrapped into [-π, π], so easing toward it turns the short way round. */
+const wrap = (a: number) => a - 2 * Math.PI * Math.round(a / (2 * Math.PI));
 
 /**
  * Orbit camera. Input moves a goal pose; the rendered pose eases toward it, so motion is
@@ -25,6 +41,8 @@ export class OrbitCamera {
   readonly proj = mat4.identity();
   readonly viewProj = mat4.identity();
   moving = false;
+  /** Seconds since the camera was last steered (follow and auto-rotate don't count). */
+  idle = Infinity;
 
   private pose = homePose();
   private goal = homePose();
@@ -35,20 +53,74 @@ export class OrbitCamera {
     return this.pose.distance;
   }
 
+  /** The point the camera orbits around. */
+  get target(): Vec3 {
+    return this.pose.target;
+  }
+
+  /** Turns the camera around the target, in radians. */
+  rotate(yaw: number, pitch: number): void {
+    this.goal.yaw += yaw;
+    this.goal.pitch = clamp(this.goal.pitch + pitch, -PITCH_LIMIT, PITCH_LIMIT);
+    this.idle = 0;
+  }
+
+  /** Orbits by a screen-space drag, turning the scene the way the mouse moves. */
   orbit(dx: number, dy: number): void {
-    this.goal.yaw -= dx * 0.005;
-    this.goal.pitch = clamp(this.goal.pitch + dy * 0.005, -1.54, 1.54);
+    this.rotate(-dx * ORBIT_GAIN, dy * ORBIT_GAIN);
+  }
+
+  /** Moves the target across the view, in view heights. */
+  slide(right: number, up: number): void {
+    const height = 2 * this.goal.distance * Math.tan(this.fovY / 2);
+    vec3.addScaled(this.goal.target, this.right, right * height, this.goal.target);
+    vec3.addScaled(this.goal.target, this.up, up * height, this.goal.target);
+    this.idle = 0;
   }
 
   /** Pans by a screen-space drag, so the point under the mouse stays under the mouse. */
   pan(dx: number, dy: number, viewportHeight: number): void {
-    const s = (2 * this.goal.distance * Math.tan(this.fovY / 2)) / viewportHeight;
-    vec3.addScaled(this.goal.target, this.right, -dx * s, this.goal.target);
-    vec3.addScaled(this.goal.target, this.up, dy * s, this.goal.target);
+    this.slide(-dx / viewportHeight, dy / viewportHeight);
   }
 
+  /** Multiplies the distance to the target: below 1 zooms in. */
+  zoomBy(factor: number): void {
+    this.goal.distance = clamp(this.goal.distance * factor, 0.05, 500);
+    this.idle = 0;
+  }
+
+  /** Zooms by a wheel delta in pixels. */
   zoom(delta: number): void {
-    this.goal.distance = clamp(this.goal.distance * Math.exp(delta * 0.0015), 0.05, 500);
+    this.zoomBy(Math.exp(delta * 0.0015));
+  }
+
+  /** Applies held-down motion for one frame. */
+  drive({ x, y, zoom, pan }: Drive, dt: number): void {
+    if (pan) {
+      if (x || y) this.slide(x * 0.6 * dt, y * 0.6 * dt);
+    } else if (x || y) {
+      this.rotate(x * 1.4 * dt, y * 1.0 * dt);
+    }
+    if (zoom) this.zoomBy(Math.exp(-zoom * 1.2 * dt));
+  }
+
+  /**
+   * Eases round to look at the target from one side of a world axis (0 = x, 1 = y, 2 = z).
+   * Asking for the view it already has turns it round to the opposite side.
+   */
+  lookFrom(axis: number, sign: number): void {
+    const g = this.goal;
+    const quarter = Math.PI / 2;
+    const view = (s: number) => ({
+      // Top and bottom views keep the nearest square-on heading.
+      yaw: axis === 0 ? s * quarter : axis === 2 ? (s > 0 ? 0 : Math.PI) : Math.round(g.yaw / quarter) * quarter,
+      pitch: axis === 1 ? s * PITCH_LIMIT : 0,
+    });
+    let v = view(sign);
+    if (Math.abs(wrap(v.yaw - g.yaw)) < 1e-3 && Math.abs(v.pitch - g.pitch) < 1e-3) v = view(-sign);
+    g.yaw += wrap(v.yaw - g.yaw);
+    g.pitch = v.pitch;
+    this.idle = 0;
   }
 
   /** Eases the orbit target toward a point (follow mode). */
@@ -57,12 +129,17 @@ export class OrbitCamera {
   }
 
   reset(): void {
-    this.goal = homePose();
+    // Turn the short way home, not back through every turn orbited or auto-rotated so far.
+    const home = homePose();
+    home.yaw = this.goal.yaw + wrap(home.yaw - this.goal.yaw);
+    this.goal = home;
+    this.idle = 0;
   }
 
   update(dt: number, damping: number, autoRotate: number, fovDeg: number, aspect: number): void {
     const p = this.pose;
     const g = this.goal;
+    this.idle += dt;
     g.yaw += autoRotate * dt;
     const k = damping > 0 ? 1 - Math.exp(-dt / damping) : 1;
     const before = [p.yaw, p.pitch, p.distance, p.target[0], p.target[1], p.target[2]];
